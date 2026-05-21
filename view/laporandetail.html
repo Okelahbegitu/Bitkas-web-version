@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan</title>
+    <link rel="stylesheet" href="../style/output.css">
+</head>
+
+<body class="dark:bg-gray-900 dark:text-gray-300">
+    <app-navbar></app-navbar>
+    <div class="p-1 m-8 rounded-2xl bg-purple-100 shadow dark:bg-purple-900">
+        <canvas id="chart" class="w-full">
+
+        </canvas>
+    </div>
+    <div class="flex justify-end px-10">
+        <button onclick="window.print()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Cetak Laporan 🖨️
+        </button>
+    </div>
+    <main id="container" class="m-8 flex justify-center">
+
+        <table class="table-auto w-full text-gray-200 dark:text-gray-300 rounded-t-2xl overflow-hidden">
+            <thead>
+                <tr class="bg-gray-400 dark:bg-gray-700 text-2xl font-bold">
+                    <th class="px-3 py-5">Tanggal</th>
+                    <th class="px-3 py-5">Nama</th>
+                    <th class="px-3 py-5">Jenis</th>
+                    <th class="px-3 py-5">Nominal</th>
+                    <th class="px-3 py-5">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody id="laporan-detail-body">
+                <!-- Data detail laporan akan dimasukkan di sini -->
+            </tbody>
+        </table>
+    </main>
+
+</body>
+<script src="../js/main.js" type="module"></script>
+<script type="module">
+    import { API_BASE_URL } from "../config/config.js"
+    import axios from "axios"
+
+
+    function getNormalizedParams() {
+        const searchParams = new URLSearchParams(window.location.search)
+        const rawMonth = searchParams.get("bulan") || searchParams.get("month")
+        const rawYear = searchParams.get("tahun") || searchParams.get("year")
+
+        const monthFromNumber = Number(rawMonth)
+        const month = Number.isInteger(monthFromNumber) && monthFromNumber >= 1 && monthFromNumber <= 12
+            ? monthFromNumber
+            : monthToNumber[(rawMonth || "").trim().toLowerCase()]
+
+        const year = Number(rawYear)
+        const validYear = Number.isInteger(year) && year > 0 ? year : null
+
+        return { month: month || null, year: validYear }
+    }
+
+    function renderRows(data) {
+        const tableBody = document.getElementById("laporan-detail-body")
+        tableBody.innerHTML = ""
+
+        if (!Array.isArray(data) || data.length === 0) {
+            tableBody.innerHTML = `
+                <tr class="bg-gray-100 dark:bg-gray-800">
+                    <td class="px-4 py-3 text-center" colspan="5">Tidak ada transaksi pada periode ini</td>
+                </tr>
+            `
+            return
+        }
+
+        const formatter = new Intl.NumberFormat("id-ID")
+        const fragment = document.createDocumentFragment()
+
+        data.forEach((transaksi) => {
+            const row = document.createElement("tr")
+            row.classList.add("bg-gray-100", "hover:bg-amber-300", "dark:bg-gray-800", "dark:hover:bg-amber-500")
+            row.innerHTML = `
+                <td class="text-black dark:text-white px-4 py-2">${transaksi.tanggal_transaksi || "-"}</td>
+                <td class="text-black dark:text-white px-4 py-2">${transaksi.nama || "-"}</td>
+                <td class="text-black dark:text-white px-4 py-2">${transaksi.jenis || "-"}</td>
+                <td class="text-black dark:text-white px-4 py-2">Rp ${formatter.format(Number(transaksi.nominal || 0))}</td>
+                <td class="text-black dark:text-white px-4 py-2">${transaksi.keterangan || "-"}</td>
+            `
+            fragment.appendChild(row)
+        })
+
+        tableBody.appendChild(fragment)
+    }
+
+    async function loadReportDetail() {
+        const { month, year } = getNormalizedParams()
+        if (!month || !year) {
+            console.error("Parameter bulan/tahun tidak valid", { month, year, query: window.location.search })
+            return
+        }
+
+        const endpoint = `${API_BASE_URL.replace(/\/+$/, "")}/GET_TRANSAKSI.php`
+        const query = new URLSearchParams({
+            bulan: String(month),
+            tahun: String(year)
+        })
+
+        try {
+            const response = await axios.get(`${endpoint}?${query.toString()}`, {
+                headers: {
+                    "ngrok-skip-browser-warning": "true"
+                }
+            })
+            renderRows(response.data.data)
+        } catch (error) {
+            console.error("Error fetching report detail:", error)
+        }
+    }
+
+    loadReportDetail()
+</script>
+
+
+<script type="module">
+    import Chart from 'chart.js/auto'
+    import { API_BASE_URL } from "../config/config.js"
+    import axios from "axios"
+    const ctx = document.getElementById('chart').getContext('2d')
+    axios.get(`${API_BASE_URL}/GET_REAPORT_MOTHLY.php?bulan=${new URLSearchParams(window.location.search).get('bulan')}&tahun=${new URLSearchParams(window.location.search).get('tahun')}`, {
+        headers: {
+            'ngrok-skip-browser-warning': 'true',
+        }
+    }).then((response) => {
+        const data = response.data.data
+        const labels = data.map(item => `Minggu ${item.minggu_bulan}`);
+        const pemasukanData = data.map(item => item.total_pemasukan)
+        const pengeluaranData = data.map(item => item.total_pengeluaran)
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Pemasukan',
+                        data: pemasukanData,
+                        backgroundColor: 'rgba(66, 135, 245, 0.7)',
+                        borderColor: 'rgba(66, 135, 245, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Pengeluaran',
+                        data: pengeluaranData,
+                        backgroundColor: 'rgba(245, 66, 66, 0.7)',
+                        borderColor: 'rgba(245, 66, 66, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Grafik Pemasukan dan Pengeluaran'
+                    }
+                }
+            },
+        })
+    }).catch((error) => {
+        console.error("Error fetching report data for chart:", error)
+    })
+</script>
+
+</html>

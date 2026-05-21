@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* INI WAJIB */
+.micromodal-slide.is-open {
+  display: flex;
+}
+@theme {
+  --color-primary: #7C3AED;
+}

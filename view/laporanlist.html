@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../style/output.css">
+    <title>Laporan</title>
+</head>
+
+<body class="dark:bg-gray-900 dark:text-gray-300">
+    <app-navbar></app-navbar>
+    <main id="container" class="m-8">
+
+    </main>
+</body>
+<script src="../js/main.js" type="module"></script>
+<script type="module">
+    import { API_BASE_URL } from "../config/config.js"
+    import axios from "axios"
+
+
+    //untuk menkategorikan laporan berdasarkan tahun, jadi nanti akan ada laporan untuk tahun 2023, 2024, dll
+    const YearParent = []
+
+    //konversi angka ke bulan
+    const mothname = {
+        "1": "Januari",
+        "2": "Februari",
+        "3": "Maret",
+        "4": "April",
+        "5": "Mei",
+        "6": "Juni",
+        "7": "Juli",
+        "8": "Agustus",
+        "9": "September",
+        "10": "Oktober",
+        "11": "November",
+        "12": "Desember"
+    }
+
+    const container = document.getElementById("container")
+    axios.get(`${API_BASE_URL}/GET_REAPORT.php`, {
+        headers: {
+            'ngrok-skip-browser-warning': 'true',
+        }
+    }).then((response) => {
+        const data = response.data.data
+        console.log(data)
+        data.forEach((laporan) => {
+            if (!YearParent.includes(laporan.tahun)) {
+                YearParent.push(laporan.tahun)
+                const yearCategory = document.createElement("div")
+                yearCategory.classList.add("year-category")
+                yearCategory.innerHTML = `
+                    <h2 class="year-title text-3xl font-bold">${laporan.tahun}</h2>
+                    <div class="flex overflow-x-auto py-5 my-5 gap-4" id="${laporan.tahun}-container">
+
+                    </div>
+                `
+                container.appendChild(yearCategory)
+
+            }
+
+            const card = document.createElement("laporan-card")
+            card.setAttribute("month", mothname[laporan.bulan])
+            card.setAttribute("total-pemasukan", laporan.total_pemasukan)
+            card.setAttribute("total-pengeluaran", laporan.total_pengeluaran)
+            card.id = `laporan-${laporan.bulan}-${laporan.tahun}`
+            card.classList.add("laporan-card")
+            document.getElementById(`${laporan.tahun}-container`).appendChild(card)
+        })
+    }).catch((error) => {
+        console.error("Error fetching report data:", error)
+    })
+
+
+    document.addEventListener("click", (event) => {
+        const card = event.target.closest("laporan-card")
+        if (!card) return
+
+        const [_, month, year] = card.id.split("-")
+        console.log(`Anda mengklik laporan untuk bulan ${month} tahun ${year}`)
+        window.location.href = `laporandetail.html?bulan=${month}&tahun=${year}`
+    })
+
+</script>
+
+</html>

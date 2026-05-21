@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="../style/output.css" rel="stylesheet">
+</head>
+
+<body class="dark:bg-gray-900 dark:text-gray-200">
+    <app-navbar></app-navbar>
+    <div class="flex justify-center py-7"><input placeholder="Cari siswa..."
+            class="rounded-3xl py-2 px-15 text-2xl border">
+        <button class="bg-purple-500 text-white rounded-3xl py-2 px-5 ml-3">Cari</button>
+    </div>
+    <main id="container" class="grid grid-cols-4 gap-4 px-5">
+
+    </main>
+</body>
+<script type="module" src="../js/main.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    lucide.createIcons();
+</script>
+<script type="module">
+    import { API_BASE_URL } from "../config/config.js";
+    import axios from "axios";
+
+    axios.get(`${API_BASE_URL}/GET_ALL_SISWA.php`, {
+        headers: {
+            'ngrok-skip-browser-warning': 'true'
+        }
+    }).then((response) => {
+        response.data.data.forEach((siswa) => {
+            console.log(siswa);
+            const siswaCard = document.createElement("siswacard-for-list");
+            siswaCard.setAttribute("nama", siswa.nama_siswa);
+            siswaCard.setAttribute("nisn", siswa.nisn);
+            siswaCard.setAttribute("gender", siswa.gender);
+            siswaCard.setAttribute("tanggallahir", siswa.tanggal_lahir);
+            siswaCard.setAttribute("id_siswa", siswa.id_siswa);
+            siswaCard.setAttribute("func", `editSiswa('${siswa.nisn}', '${siswa.nama_siswa}', '${siswa.gender}', '${siswa.tanggal_lahir}')`);
+            document.getElementById("container").appendChild(siswaCard);
+        });
+    }).catch((error) => {
+        console.error(error);
+    });
+
+    window.editSiswa = function (nisn, nama, gender, tanggallahir) {
+        const editPopup = document.createElement("edit-siswa-popup");
+        editPopup.setAttribute("nisn", nisn);
+        editPopup.setAttribute("nama", nama);
+        editPopup.setAttribute("gender", gender);
+        editPopup.setAttribute("tanggallahir", tanggallahir);
+        document.body.appendChild(editPopup);
+    }
+
+    window.hapusSiswa = function (nisn) {
+        if (confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
+            axios.delete(`${API_BASE_URL}/DELETE_SISWA.php`, {
+                data: {
+                    nisn: nisn
+                },
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            }).then((response) => {
+                alert(response.data.message);
+                location.reload();
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+    }
+</script>
+
+</html>

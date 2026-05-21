@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Test MicroModal</title>
+  <link href="/style/output.css" rel="stylesheet">
+</head>
+
+<body class="flex flex-col h-screen overflow-hidden dark:bg-gray-900 dark:text-gray-200">
+  <app-navbar></app-navbar>
+  <main class="flex-1 grid grid-cols-6 grid-rows-5 gap-4 px-5 overflow-hidden m-5">
+    <div class="bg-purple-100 dark:bg-purple-900 shadow col-span-4 row-span-4 rounded-2xl flex flex-col">
+      <h2 class="text-2xl p-1 px-3">Statistik saldo bulan ini</h2>
+      <canvas id="myChart" class="w-fit h-fit mx-5 py-2 mb-20"></canvas>
+
+    </div>
+
+    <div class="bg-purple-100 dark:bg-purple-900 shadow col-span-4 row-start-5 flex h-full justify-between px-2.5 rounded-2xl ">
+      <div >
+        <h2 class="text-2xl">Saldo<br></h2>
+          <p class="text-3xl font-bold" id="Saldo"></p>
+      </div>
+      <!-- 'Murid Lunas' section removed. JS now guards usage to avoid errors. -->
+      <div>
+        <h2 class="text-2xl">Total pemasukan</h2>
+        <p class="text-3xl font-bold" id="TotalPemasukan"></p>
+      </div>
+      <div>
+        <h2 class="text-2xl">Total pengeluaran</h2>
+        <p class="text-3xl font-bold" id="TotalPengeluaran">Rp 0000</p>
+      </div>
+    </div>
+
+    <div class="bg-purple-100 dark:bg-purple-900 shadow col-span-2 row-span-5 col-start-5 px-2.5 rounded-2xl flex-1  overflow-hidden mx-4">
+      <h1 class="text-2xl">Siswa yang bayar</h1>
+      <div class="h-full p-4 overflow-y-auto mx-4 rounded-2xl" id="siswaContainer">
+        
+      </div>
+    </div>
+    </div>
+  </main>
+  <div class="fixed bottom-6 right-6 z-50 pointer-events-none">
+    <button id="menuBTN" class="pointer-events-auto w-14 h-14 rounded-2xl
+           bg-blue-500 text-white text-3xl
+           shadow-lg hover:bg-blue-600 "">
+      +
+    </button>
+  </div>
+</body>
+<script type="module" src="/js/main.js"></script>
+
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  lucide.createIcons();
+</script>
+
+<script>
+  const menuBtn = document.getElementById("menuBTN");
+  const menupopup = document.getElementById("menu");
+  const Saldo = document.getElementById("Saldo");
+  //const QBayar = document.getElementById("QBayar");
+  const TotalPemasukan = document.getElementById("TotalPemasukan");
+  const TotalPengeluaran = document.getElementById("TotalPengeluaran");
+  const pemasukanPopup = document.getElementById("pemasukan")
+  const penggeluaranPopup = document.getElementById("penggeluaran")
+
+  menuBtn.addEventListener('click', () => {
+    const popup = document.createElement("menu-popup");
+    document.body.appendChild(popup);
+    lucide.createIcons(); // Refresh ikon saat popup dibuat
+
+     // Tambahkan event listener untuk tombol di dalam popup
+     popup.addEventListener("click", (event) => {
+      if (event.target.matches("#pemasukanBtn")) {
+        pemasukanPopup.show();
+      } else if (event.target.matches("#penggeluaranBtn")) {
+        penggeluaranPopup.show();
+      }
+    });
+  });
+
+
+
+</script>
+
+<script type="module">
+  import Chart from 'chart.js/auto'
+import axios from "axios";
+import { API_BASE_URL } from "../config/config.js";
+
+//Nampilin data laporan mingguan di daskboard secara ringkas
+axios.get(`${API_BASE_URL}/GET_REAPORT_MOTHLY.php`, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+}).then((response) => {
+
+  const data = response.data.data;
+  console.log(data);
+  Saldo.textContent = `Rp ${response.data.saldo}`;
+  //if (QBayar) QBayar.textContent = response.data.total_siswa;
+  TotalPemasukan.textContent = `Rp ${response.data.total_pemasukan}`;
+  TotalPengeluaran.textContent = `Rp ${response.data.total_pengeluaran}`;
+  const labels = data.map(item => `Minggu ${item.minggu_bulan}`);
+  const pemasukanData = data.map(item => item.total_pemasukan);
+  const pengeluaranData = data.map(item => item.total_pengeluaran);
+
+
+  //setup chart
+  const ctx = document.getElementById('myChart').getContext('2d');
+
+  const myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      //setup dataset untuk pemasukan dan pengeluaran
+      datasets: [
+        {
+          label: 'Pemasukan',                         //label untuk legend
+          data: pemasukanData,                        //data pemasukan untuk setiap minggu
+          backgroundColor: 'rgba(66, 135, 245, 0.7)', //warna latar belakang bar pemasukan
+          borderColor: 'rgba(66, 135, 245, 1)',       //warna border bar pemasukan
+          borderWidth: 1                              //ketebalan border bar pemasukan
+        },
+        {
+          label: 'Pengeluaran',                       //label untuk legend
+          data: pengeluaranData,                      //data pengeluaran untuk setiap minggu
+          backgroundColor: 'rgba(245, 66, 66, 0.7)',  //warna latar belakang bar pengeluaran
+          borderColor: 'rgba(245, 66, 66, 1)',        //warna border bar pengeluaran
+          borderWidth: 1                              //ketebalan border bar pengeluaran
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+});
+
+// tampilin saldo2 siswa (minus berarti tunggakan, plus berarti kelebihan bayar dan akan berkurangtiap minggu)
+axios.get(`${API_BASE_URL}/GET_SALDO_SISWA.php`, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+}).then((response) => {
+  console.log(response.data);
+  const siswaContainer = document.getElementById("siswaContainer");
+  const siswaList = Array.isArray(response.data?.data) ? response.data.data : [];
+
+  siswaList.forEach(siswa => {
+    const siswaElement = document.createElement("siswa-card");
+    siswaElement.setAttribute("nama", siswa.nama_siswa ?? "-");
+    siswaElement.setAttribute("saldo", siswa.nominal_sisa);
+    siswaContainer.appendChild(siswaElement);
+  });
+});
+
+if (localStorage.getItem("role") == "ketkel"){
+  menuBtn.style.display = "none";
+}
+
+
+</script>
+
+</html>

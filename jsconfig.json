@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "js/**/*.js",
+    "component/**/*.js",
+    "config/**/*.js",
+    "view/**/*.html",
+    "vite.config.js",
+    "tailwind.config.js"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
